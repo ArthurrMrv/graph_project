@@ -1,0 +1,17 @@
+# Neo4j Data Directories and Generated Files
+
+# Ignore the main data directory where Neo4j stores its graph and system files
+/data/neo4j/
+
+# If you run Neo4j without Docker, you might also have a 'logs' directory
+/logs/
+
+# Python environment/dependency files
+__pycache__/
+*.pyc
+.env
+venv/
+
+# Docker generated files (volumes)
+# If your data volume is mapped directly to 'data' in your project root:
+# /data/
