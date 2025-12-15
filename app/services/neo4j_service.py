@@ -21,7 +21,11 @@ class Neo4jService:
             "CREATE CONSTRAINT IF NOT EXISTS FOR (t:Tweet) REQUIRE t.id IS UNIQUE",
             "CREATE CONSTRAINT IF NOT EXISTS FOR (s:Stock) REQUIRE s.ticker IS UNIQUE",
             "CREATE CONSTRAINT IF NOT EXISTS FOR (d:TradingDay) REQUIRE d.date IS UNIQUE",
-            "CREATE CONSTRAINT IF NOT EXISTS FOR (h:HashTag) REQUIRE h.tag IS UNIQUE"
+            "CREATE CONSTRAINT IF NOT EXISTS FOR (h:HashTag) REQUIRE h.tag IS UNIQUE",
+            "CREATE CONSTRAINT IF NOT EXISTS FOR (u:User) REQUIRE u.user_id IS UNIQUE",
+            "CREATE CONSTRAINT IF NOT EXISTS FOR (tp:Topic) REQUIRE tp.name IS UNIQUE",
+            "CREATE CONSTRAINT IF NOT EXISTS FOR (n:NewsEvent) REQUIRE n.event_id IS UNIQUE",
+            "CREATE CONSTRAINT IF NOT EXISTS FOR (f:Factor) REQUIRE f.name IS UNIQUE"
         ]
         with self.driver.session() as session:
             for q in queries:
