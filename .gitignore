@@ -10,6 +10,7 @@
 __pycache__/
 *.pyc
 .env
+graph_env/
 venv/
 
 # Docker generated files (volumes)
