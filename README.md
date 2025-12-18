@@ -92,6 +92,8 @@ graph_project/
 Start the FastAPI server (reload optional during development):
 ```bash
 uvicorn app.main:app --reload
+# or with venv
+venv/bin/uvicorn app.main:app --reload
 ```
 
 Available endpoints (single ingestion path via FastAPI):
@@ -106,6 +108,13 @@ Available endpoints (single ingestion path via FastAPI):
 - `GET /api/gds/influence/global` – PageRank via Neo4j GDS on the user influence graph.
 - `GET /api/gds/communities/stocks` – Louvain via GDS on a co-mention stock graph.
 - `GET /api/gds/similarity/stocks/{ticker}` – Node similarity via GDS for related tickers.
+
+Quantitative Analysis endpoints:
+- `GET /api/correlation/sentiment-price/{stock}?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD` – calculate Pearson correlation between sentiment and price changes.
+- `GET /api/trending/stocks?window=daily&limit=10` – find trending stocks by tweet volume and sentiment (windows: hourly/daily/weekly).
+- `GET /api/influencers/{stock}?limit=20` – top influencers for a stock ranked by tweets, network influence, and sentiment impact.
+- `GET /api/prediction/sentiment-based/{stock}?lookback_days=7` – predict bullish/bearish/neutral direction based on recent sentiment trends.
+- `GET /api/volatility/social-driven?min_tweets=50&limit=20` – stocks with highest social media sentiment volatility.
 
 Run the lightweight verification script (mocks external services) if you want to check wiring without live dependencies:
 ```bash
@@ -128,3 +137,45 @@ Run the mocked API tests with pytest:
 pytest
 ```
 Tests patch Neo4j/Gemini to avoid external dependencies and use temp CSVs for ingestion paths.
+
+## Testing Quantitative Analysis Endpoints
+
+Before testing the quantitative endpoints, you need to load Tesla data into Neo4j:
+
+**Option A: Using curl in terminal**
+```bash
+# Import stock prices
+curl -X POST "http://localhost:8000/api/stocks/sync" \
+  -H "Content-Type: application/json" \
+  -d '{"stock": "TSLA", "start_date": "2021-09-30", "end_date": "2022-09-30"}'
+
+# Import tweets and social data
+curl -X POST "http://localhost:8000/api/social/import" \
+  -H "Content-Type: application/json" \
+  -d '{"stock": "TSLA", "start_date": "2021-09-30", "end_date": "2022-09-30"}'
+```
+
+**Option B: Using the interactive API docs**
+Navigate to `http://localhost:8000/docs` test each end points.
+
+1. Open `http://localhost:8000/docs` in your browser
+2. All endpoints are organized by tags: `Ingestion`, `Quantitative Analysis`, `Analytics`, `Sentiment`
+3. For each endpoint:
+   - Click to expand
+   - Click "Try it out"
+   - Modify parameters as needed
+   - Click "Execute"
+   - View response with syntax highlighting
+
+**Example workflow in `/docs`:**
+1. Navigate to **Quantitative Analysis** section
+2. Test `GET /api/correlation/sentiment-price/{stock}`:
+   - Set `stock` = `TSLA`
+   - Set `start_date` = `2021-10-01`
+   - Set `end_date` = `2022-09-30`
+   - Execute and observe correlation metrics
+3. Test `GET /api/trending/stocks`:
+   - Set `window` = `daily`
+   - Set `limit` = `10`
+   - Execute to see which stocks are trending
+4. Continue with other endpoints
