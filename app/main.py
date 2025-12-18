@@ -1,11 +1,11 @@
 from fastapi import FastAPI
-from app.routers import social, stocks, sentiment
+from app.routers import sentiment, analytics, ingestion
 
 app = FastAPI(title="Stock Sentiment Graph API")
 
-app.include_router(social.router, prefix="/api/social", tags=["Social"])
-app.include_router(stocks.router, prefix="/api/stocks", tags=["Stocks"])
+app.include_router(ingestion.router, prefix="/api", tags=["Ingestion"])
 app.include_router(sentiment.router, prefix="/api/sentiment", tags=["Sentiment"])
+app.include_router(analytics.router, prefix="/api", tags=["Analytics"])
 
 @app.get("/")
 def read_root():
