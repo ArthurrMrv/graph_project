@@ -3,7 +3,7 @@ from typing import Optional
 
 class SentimentRequest(BaseModel):
     text: str
-    api_key: str
+    api_key: Optional[str] = None  # Optional, will use HF_TOKEN from .env if not provided
 
 class SentimentResponse(BaseModel):
     sentiment: int
