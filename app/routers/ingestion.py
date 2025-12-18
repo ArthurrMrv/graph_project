@@ -30,8 +30,9 @@ async def sync_stocks(request: StockSyncRequest):
 
     default_start = pd.to_datetime("2021-09-30")
     default_end = pd.to_datetime("2022-09-30")
-    start_date = pd.to_datetime(request.start_date) if request.start_date else default_start
-    end_date = pd.to_datetime(request.end_date) if request.end_date else default_end
+    # Validate date strings - check if they're not None, not empty, and not the literal "string"
+    start_date = pd.to_datetime(request.start_date) if (request.start_date and request.start_date.strip() and request.start_date != "string") else default_start
+    end_date = pd.to_datetime(request.end_date) if (request.end_date and request.end_date.strip() and request.end_date != "string") else default_end
     chunk_size = max(100, min(request.chunk_size, 5000))
 
     cypher = """
@@ -80,8 +81,9 @@ async def import_social(request: SocialImportRequest):
 
     default_start = pd.to_datetime("2021-09-30")
     default_end = pd.to_datetime("2022-09-30")
-    start_date = pd.to_datetime(request.start_date) if request.start_date else default_start
-    end_date = pd.to_datetime(request.end_date) if request.end_date else default_end
+    # Validate date strings - check if they're not None, not empty, and not the literal "string"
+    start_date = pd.to_datetime(request.start_date) if (request.start_date and request.start_date.strip() and request.start_date != "string") else default_start
+    end_date = pd.to_datetime(request.end_date) if (request.end_date and request.end_date.strip() and request.end_date != "string") else default_end
     chunk_size = max(100, min(request.chunk_size, 5000))
 
     cypher = """
