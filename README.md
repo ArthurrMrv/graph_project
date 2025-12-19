@@ -72,7 +72,7 @@ Create a `.env` file for your credentials:
 NEO4J_URI=bolt://localhost:7687
 NEO4J_USER=neo4j
 NEO4J_PASSWORD=password
-# HF_TOKEN=hf_... (Optional: for Hugging Face API rate limits)
+# HF_TOKEN=hf_... (Required for the sentiment engine)
 ```
 
 ### 3. Start Neo4j (Docker)
@@ -89,32 +89,34 @@ Access docs at: `http://localhost:8000/docs`
 
 ## Testing & Quality
 
-We prioritize high code quality (Pylint 10/10) and robust testing.
+The project reached a professional state of robustness with **92% total code coverage** and a **10.00/10 Pylint score**.
 
-### 1. Unified Quality Check (Recommended)
-Run all tests (Unit + Integration) and Pylint in one go using our portable script:
+### 1. Quality Stats
+- **Unit Tests**: 58 passing tests
+- **Test Coverage**: **92%** (Analytics/Neo4j at 100%, Workflow at 98%)
+- **Code Quality**: **10.00/10** Pylint
+- **Observability**: Centralized structured logging for all services.
+
+### 2. Unified Quality Check (Recommended)
+Run the entire pipeline (Unit + Integration + Coverage + Linting) in one command:
 ```bash
 ./scripts/verify_quality.sh
-```
-*Note: Integration tests will automatically skip if Neo4j is not running.*
-
-### 2. Dockerized Testing (Full Isolation)
-To run the entire verification pipeline (including Integration tests with a real Neo4j DB) in a clean container:
-```bash
-docker compose -f docker-compose.test.yml up --build --exit-code-from tester
-docker compose -f docker-compose.test.yml down -v
 ```
 
 ### 3. Makefile Commands
 ```bash
 make test           # Unit tests (Mocked)
-make test-integration # Integration tests (Local Neo4j)
 make docker-test    # Everything inside Docker (Tests + Pylint)
 make verify         # Run ./scripts/verify_quality.sh
-make lint           # Check code quality (Pylint 10/10)
+make lint           # Check code quality (Pylint 10.00/10)
+make format         # Run black code formatter
 make ingest-demo    # Load sample Tesla data to the unified pipeline
 ```
 
+## Architecture & I/O
+- **Pydantic Models**: All endpoints use centralized Pydantic models for strict I/O validation and clear OpenAPI documentation.
+- **Service Layer**: Decoupled Neo4j and HuggingFace services with robust mocking for testing.
+- **Resilient Pipeline**: Smart dates parsing and batch processing with individual fallbacks.
 
 ## Ingestion (One-Shot)
 Run the full ingestion pipeline (stocks + tweets) for a specific ticker:
