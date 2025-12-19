@@ -29,9 +29,12 @@ def _extract_hashtags(text: str) -> List[str]:
 async def dataset_to_graph(request: PipelineRequest):
     """
     Unified pipeline to ingest both Stock Price data and Social Tweets for a given ticker.
-    Refactored to simplified schema:
+    Automatically handles optional columns (User, Topics, Sentiment/Confidence) if present in CSV.
+    
+    Refactored Schema:
     - Nodes: Stock, TradingDay, Tweet, HashTag
-    - Relationships: PRICE_ON, DISCUSSES, ON_DATE, TAGGED_WITH
+    - Optional Nodes: User, Topic, NewsEvent (if data available)
+    - Relationships: PRICE_ON, DISCUSSES, ON_DATE, TAGGED_WITH, POSTED_BY, MENTIONS, REFERENCES
     """
     
     # 1. Pipeline Setup
@@ -120,6 +123,17 @@ async def dataset_to_graph(request: PipelineRequest):
     FOREACH (tag IN row.hashtags |
         MERGE (h:HashTag {tag: tag})
         MERGE (t)-[:TAGGED_WITH]->(h))
+
+    // Optional Links (only if present in CSV)
+    FOREACH (usr IN CASE WHEN row.user_id IS NULL THEN [] ELSE [row.user_id] END |
+        MERGE (u:User {user_id: usr})
+        MERGE (t)-[:POSTED_BY]->(u))
+    FOREACH (topic IN row.topics |
+        MERGE (tp:Topic {name: topic})
+        MERGE (t)-[:MENTIONS]->(tp))
+    FOREACH (ev IN CASE WHEN row.event_id IS NULL THEN [] ELSE [row.event_id] END |
+        MERGE (n:NewsEvent {event_id: ev})
+        MERGE (t)-[:REFERENCES]->(n))
     """
     
     # Read Social CSV
@@ -138,22 +152,38 @@ async def dataset_to_graph(request: PipelineRequest):
             text = str(row["Tweet"])
             tweet_id = hashlib.sha256((text + str(row["Date"])).encode()).hexdigest()
             
-            # Sentiment to be added 
+            # 3.1 Handle Sentiment (Float fix)
             sentiment = None
             confidence = None
             if "Sentiment" in row and pd.notna(row["Sentiment"]):
-                sentiment = int(row["Sentiment"])
+                sentiment = float(row["Sentiment"]) # Corrected: float instead of int
                 confidence = float(row.get("Confidence", 0.0)) if "Confidence" in row else None
+            
+            # 3.2 Handle Optional Columns
+            user_id = None
+            if "User" in row and pd.notna(row["User"]):
+                user_id = str(row["User"])
+                
+            topics = []
+            if "Topics" in row and isinstance(row["Topics"], str):
+                topics = [t.strip() for t in row["Topics"].split("|") if t.strip()]
+
+            event_id = None
+            if "EventId" in row and pd.notna(row["EventId"]):
+                event_id = str(row["EventId"])
 
             rows.append({
                 "ticker": str(row["Stock Name"]),
                 "tweet_id": tweet_id,
                 "text": text,
-                "date": row["Date"].isoformat(),      # Full ISO timestamp for Tweet property
-                "date_only": row["Date"].strftime("%Y-%m-%d"), # YYYY-MM-DD for TradingDay matching
+                "date": row["Date"].isoformat(),      
+                "date_only": row["Date"].strftime("%Y-%m-%d"),
                 "hashtags": _extract_hashtags(text),
                 "sentiment": sentiment,
-                "confidence": confidence
+                "confidence": confidence,
+                "user_id": user_id,
+                "topics": topics,
+                "event_id": event_id
             })
             
         if rows:
@@ -165,5 +195,5 @@ async def dataset_to_graph(request: PipelineRequest):
         "stock": request.stock,
         "prices_synced": stock_records,
         "tweets_imported": tweet_records,
-        "schema_notes": "Simplified: User, Topic, NewsEvent labels were skipped."
+        "notes": "Pipeline executed with enhanced graph capabilities (User/Topic/Event support involved)"
     }

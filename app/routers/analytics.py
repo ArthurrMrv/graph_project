@@ -74,11 +74,10 @@ async def timeline_events(stock: str, limit: int = 50):
     Return events linked to a ticker, ordered by date when available.
     """
     cypher = """
-    MATCH (n:NewsEvent)-[:AFFECTS]->(s:Stock {ticker: $ticker})
-    OPTIONAL MATCH (n)<-[:REFERENCES]-(t:Tweet)
+    MATCH (s:Stock {ticker: $ticker})<-[:DISCUSSES]-(t:Tweet)-[:REFERENCES]->(n:NewsEvent)
     WITH n, count(t) AS mentions
     RETURN n.event_id AS event_id, n.title AS title, n.published_at AS published_at, mentions
-    ORDER BY published_at ASC NULLS LAST
+    ORDER BY mentions DESC, n.published_at DESC
     LIMIT $limit
     """
     result = neo4j_service.run_query(cypher, {"ticker": stock, "limit": limit})
@@ -120,23 +119,22 @@ async def gds_stock_communities():
     Use GDS Louvain to detect stock communities on a simplified co-mention graph.
     """
     cypher = """
-    CALL gds.graph.project(
+    CALL gds.graph.project.cypher(
       'stockCoMention',
-      'Stock',
-      {
-        CO_MENTIONED_WITH: {
-          type: 'CO_MENTIONED_WITH',
-          orientation: 'UNDIRECTED'
-        }
-      }
+      'MATCH (s:Stock) RETURN id(s) AS id',
+      'MATCH (s1:Stock)<-[:DISCUSSES]-(t:Tweet)-[:DISCUSSES]->(s2:Stock) WHERE id(s1) < id(s2) RETURN id(s1) AS source, id(s2) AS target, count(t) AS weight'
     )
     YIELD graphName
-    CALL gds.louvain.stream(graphName)
+    CALL gds.louvain.stream(graphName, { relationshipWeightProperty: 'weight' })
     YIELD nodeId, communityId
     WITH gds.util.asNode(nodeId) AS s, communityId
     RETURN s.ticker AS ticker, communityId
     ORDER BY communityId, ticker
     """
+    
+    # Check if graph exists and drop it to ensure fresh projection
+    neo4j_service.run_query("CALL gds.graph.drop('stockCoMention', false)")
+    
     result = neo4j_service.run_query(cypher)
     return {"algorithm": "gds.louvain", "stocks": [dict(r) for r in result]}
 

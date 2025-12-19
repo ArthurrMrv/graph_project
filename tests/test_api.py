@@ -28,10 +28,14 @@ def setup_client(monkeypatch, capture_list=None):
     # Patch ingestion & analytics to avoid real Neo4j
     monkeypatch.setattr(ingestion, "neo4j_service", mock_service)
     monkeypatch.setattr(analytics_router, "neo4j_service", mock_service)
-    # Patch sentiment to avoid real Gemini
-    mock_gemini = MagicMock()
-    mock_gemini.analyze_sentiment.return_value = {"sentiment": 1, "confidence": 0.9}
-    monkeypatch.setattr(sentiment_router, "gemini_service", mock_gemini)
+    
+    # Patch sentiment to avoid real HuggingFace service
+    mock_hf_instance = MagicMock()
+    mock_hf_instance.analyze_sentiment.return_value = {"sentiment": 1, "confidence": 0.9}
+    
+    # Mock the factory function get_hf_service to return our mock instance
+    mock_get_hf_service = MagicMock(return_value=mock_hf_instance)
+    monkeypatch.setattr(sentiment_router, "get_hf_service", mock_get_hf_service)
     # Reload main to ensure routers reference patched modules (idempotent)
     import app.main as main
     importlib.reload(main)

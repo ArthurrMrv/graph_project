@@ -39,15 +39,14 @@ async def sentiment_price_correlation(
         start_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
     
     # Query to get daily price and sentiment data
+    # Optimized to use [:ON_DATE] relationship created by pipeline
     cypher = """
     MATCH (s:Stock {ticker: $ticker})-[p:PRICE_ON]->(d:TradingDay)
     WHERE d.date >= $start_date AND d.date <= $end_date
     WITH s, d, p
     ORDER BY d.date
-    OPTIONAL MATCH (t:Tweet)-[:DISCUSSES]->(s)
-    WHERE t.date >= $start_date AND t.date <= $end_date
-      AND t.sentiment IS NOT NULL
-      AND date(t.date) = d.date
+    OPTIONAL MATCH (d)<-[:ON_DATE]-(t:Tweet)-[:DISCUSSES]->(s)
+    WHERE t.sentiment IS NOT NULL
     WITH d.date AS date,
          p.close AS close_price,
          p.volume AS trading_volume,
@@ -124,7 +123,7 @@ def _interpret_correlation(corr: float) -> str:
 
 @router.get("/trending/stocks")
 async def trending_stocks(
-    window: str = Query(default="daily", regex="^(hourly|daily|weekly)$"),
+    window: str = Query(default="daily", pattern="^(hourly|daily|weekly)$"),
     limit: int = Query(default=10, ge=1, le=50)
 ):
     """
