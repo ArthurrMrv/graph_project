@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Query
-from typing import List, Dict, Any, Optional
-from datetime import datetime, timedelta
-from app.services.neo4j_service import neo4j_service
 import statistics
+from typing import Optional
+from datetime import datetime, timedelta
+from fastapi import APIRouter, Query
+from app.services.neo4j_service import neo4j_service
 
 router = APIRouter()
 
@@ -12,18 +12,18 @@ async def sentiment_price_correlation(
     stock: str,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
-    window_days: int = Query(default=7, ge=1, le=90)
+    window_days: int = Query(default=7, ge=1, le=90),  # pylint: disable=unused-argument
 ):
     """
     Calculate correlation between average daily sentiment and stock price changes.
     Returns Pearson correlation coefficient and daily aggregated data.
-    
+
     Args:
         stock: Stock ticker symbol (e.g., 'TSLA')
         start_date: Start date in YYYY-MM-DD format (optional, defaults to 30 days ago)
         end_date: End date in YYYY-MM-DD format (optional, defaults to today)
         window_days: Rolling window size for correlation calculation (default: 7)
-    
+
     Returns:
         {
             "stock": ticker,
@@ -37,17 +37,16 @@ async def sentiment_price_correlation(
         end_date = datetime.now().strftime("%Y-%m-%d")
     if not start_date:
         start_date = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
-    
+
     # Query to get daily price and sentiment data
+    # Optimized to use [:ON_DATE] relationship created by pipeline
     cypher = """
     MATCH (s:Stock {ticker: $ticker})-[p:PRICE_ON]->(d:TradingDay)
     WHERE d.date >= $start_date AND d.date <= $end_date
     WITH s, d, p
     ORDER BY d.date
-    OPTIONAL MATCH (t:Tweet)-[:DISCUSSES]->(s)
-    WHERE t.date >= $start_date AND t.date <= $end_date
-      AND t.sentiment IS NOT NULL
-      AND date(t.date) = d.date
+    OPTIONAL MATCH (d)<-[:ON_DATE]-(t:Tweet)-[:DISCUSSES]->(s)
+    WHERE t.sentiment IS NOT NULL
     WITH d.date AS date,
          p.close AS close_price,
          p.volume AS trading_volume,
@@ -56,47 +55,41 @@ async def sentiment_price_correlation(
     RETURN date, close_price, trading_volume, avg_sentiment, tweet_count
     ORDER BY date
     """
-    
-    result = neo4j_service.run_query(cypher, {
-        "ticker": stock,
-        "start_date": start_date,
-        "end_date": end_date
-    })
-    
+
+    result = neo4j_service.run_query(cypher, {"ticker": stock, "start_date": start_date, "end_date": end_date})
+
     data = [dict(r) for r in result]
-    
+
     # Calculate Pearson correlation coefficient
     correlation = None
     if len(data) >= 2:
         prices = []
         sentiments = []
-        
+
         for i in range(len(data) - 1):
-            if data[i]["avg_sentiment"] is not None and data[i+1]["close_price"]:
+            if data[i]["avg_sentiment"] is not None and data[i + 1]["close_price"]:
                 # Calculate percentage price change from day i to day i+1
-                price_change = ((data[i+1]["close_price"] - data[i]["close_price"]) / 
-                               data[i]["close_price"]) * 100
+                price_change = ((data[i + 1]["close_price"] - data[i]["close_price"]) / data[i]["close_price"]) * 100
                 prices.append(price_change)
                 sentiments.append(data[i]["avg_sentiment"])
-        
+
         if len(prices) >= 2 and len(sentiments) >= 2:
             try:
                 n = len(prices)
                 mean_price = statistics.mean(prices)
                 mean_sentiment = statistics.mean(sentiments)
-                
-                numerator = sum((prices[i] - mean_price) * (sentiments[i] - mean_sentiment) 
-                              for i in range(n))
-                
+
+                numerator = sum((prices[i] - mean_price) * (sentiments[i] - mean_sentiment) for i in range(n))
+
                 price_std = statistics.stdev(prices)
                 sentiment_std = statistics.stdev(sentiments)
-                
+
                 # Pearson correlation = covariance / (std_x * std_y)
                 if price_std > 0 and sentiment_std > 0:
                     correlation = numerator / (n * price_std * sentiment_std)
-            except:
+            except Exception:  # pylint: disable=broad-exception-caught
                 correlation = None
-    
+
     return {
         "stock": stock,
         "start_date": start_date,
@@ -104,7 +97,7 @@ async def sentiment_price_correlation(
         "correlation_coefficient": round(correlation, 4) if correlation else None,
         "data_points": len(data),
         "daily_data": data,
-        "interpretation": _interpret_correlation(correlation) if correlation else "Insufficient data"
+        "interpretation": _interpret_correlation(correlation) if correlation else "Insufficient data",
     }
 
 
@@ -112,20 +105,19 @@ def _interpret_correlation(corr: float) -> str:
     """Helper function to interpret correlation coefficient"""
     if corr >= 0.7:
         return "Strong positive correlation - sentiment strongly predicts price increases"
-    elif corr >= 0.3:
+    if corr >= 0.3:
         return "Moderate positive correlation - sentiment somewhat predicts price increases"
-    elif corr >= -0.3:
+    if corr >= -0.3:
         return "Weak/no correlation - sentiment does not reliably predict price movement"
-    elif corr >= -0.7:
+    if corr >= -0.7:
         return "Moderate negative correlation - positive sentiment predicts price decreases"
-    else:
-        return "Strong negative correlation - sentiment inversely predicts price movement"
+    
+    return "Strong negative correlation - sentiment inversely predicts price movement"
 
 
 @router.get("/trending/stocks")
 async def trending_stocks(
-    window: str = Query(default="daily", regex="^(hourly|daily|weekly)$"),
-    limit: int = Query(default=10, ge=1, le=50)
+    window: str = Query(default="daily", pattern="^(hourly|daily|weekly)$"), limit: int = Query(default=10, ge=1, le=50)
 ):
     """
     Return trending stocks based on tweet volume and sentiment in a time window.
@@ -133,7 +125,7 @@ async def trending_stocks(
     Args:
         window: Time window - 'hourly', 'daily', or 'weekly' (default: daily)
         limit: Maximum number of trending stocks to return (default: 10, max: 50)
-    
+
     Returns:
         {
             "window": time window used,
@@ -158,7 +150,7 @@ async def trending_stocks(
         start_time = (now - timedelta(days=1)).isoformat()
     else:  # weekly
         start_time = (now - timedelta(weeks=1)).isoformat()
-    
+
     cypher = """
     MATCH (t:Tweet)-[:DISCUSSES]->(s:Stock)
     WHERE t.date >= $start_time
@@ -176,34 +168,24 @@ async def trending_stocks(
     LIMIT $limit
     RETURN ticker, tweet_volume, avg_sentiment, sentiment_count, trend_score
     """
-    
-    result = neo4j_service.run_query(cypher, {
-        "start_time": start_time,
-        "limit": limit
-    })
-    
-    return {
-        "window": window,
-        "start_time": start_time,
-        "trending_stocks": [dict(r) for r in result]
-    }
+
+    result = neo4j_service.run_query(cypher, {"start_time": start_time, "limit": limit})
+
+    return {"window": window, "start_time": start_time, "trending_stocks": [dict(r) for r in result]}
 
 
 @router.get("/influencers/{stock}")
-async def top_influencers(
-    stock: str,
-    limit: int = Query(default=20, ge=1, le=100)
-):
+async def top_influencers(stock: str, limit: int = Query(default=20, ge=1, le=100)):
     """
     Return top influencers for a specific stock based on:
     - Number of tweets about the stock
     - Network influence (INFLUENCES relationships)
     - Sentiment impact (average sentiment of their tweets)
-    
+
     Args:
         stock: Stock ticker symbol (e.g., 'TSLA')
         limit: Maximum number of influencers to return (default: 20, max: 100)
-    
+
     Returns:
         {
             "stock": ticker symbol,
@@ -243,31 +225,22 @@ async def top_influencers(
     LIMIT $limit
     RETURN user_id, tweet_count, avg_sentiment, sentiment_count, influence_count, influence_score
     """
-    
-    result = neo4j_service.run_query(cypher, {
-        "ticker": stock,
-        "limit": limit
-    })
-    
-    return {
-        "stock": stock,
-        "top_influencers": [dict(r) for r in result]
-    }
+
+    result = neo4j_service.run_query(cypher, {"ticker": stock, "limit": limit})
+
+    return {"stock": stock, "top_influencers": [dict(r) for r in result]}
 
 
 @router.get("/prediction/sentiment-based/{stock}")
-async def sentiment_based_prediction(
-    stock: str,
-    lookback_days: int = Query(default=7, ge=1, le=30)
-):
+async def sentiment_based_prediction(stock: str, lookback_days: int = Query(default=7, ge=1, le=30)):
     """
     Simple sentiment-based price movement prediction using recent sentiment trends.
     Returns predicted direction and confidence based on sentiment analysis.
-    
+
     Args:
         stock: Stock ticker symbol (e.g., 'TSLA')
         lookback_days: Number of days to analyze (default: 7, max: 30)
-    
+
     Returns:
         {
             "stock": ticker symbol,
@@ -281,7 +254,7 @@ async def sentiment_based_prediction(
     """
     end_date = datetime.now().strftime("%Y-%m-%d")
     start_date = (datetime.now() - timedelta(days=lookback_days)).strftime("%Y-%m-%d")
-    
+
     cypher = """
     MATCH (t:Tweet)-[:DISCUSSES]->(s:Stock {ticker: $ticker})
     WHERE t.date >= $start_date AND t.date <= $end_date
@@ -292,13 +265,9 @@ async def sentiment_based_prediction(
          stDev(t.sentiment) AS sentiment_volatility
     RETURN avg_sentiment, tweet_count, sentiment_volatility
     """
-    
-    result = neo4j_service.run_query(cypher, {
-        "ticker": stock,
-        "start_date": start_date,
-        "end_date": end_date
-    })
-    
+
+    result = neo4j_service.run_query(cypher, {"ticker": stock, "start_date": start_date, "end_date": end_date})
+
     if not result or not result[0]["avg_sentiment"]:
         return {
             "stock": stock,
@@ -308,14 +277,14 @@ async def sentiment_based_prediction(
             "avg_sentiment": None,
             "tweet_volume": 0,
             "sentiment_volatility": None,
-            "message": "Not enough sentiment data for prediction"
+            "message": "Not enough sentiment data for prediction",
         }
-    
+
     data = dict(result[0])
     avg_sentiment = data.get("avg_sentiment", 0.5)
     tweet_count = data.get("tweet_count", 0)
     sentiment_volatility = data.get("sentiment_volatility", 0) or 0
-    
+
     # Prediction logic based on sentiment thresholds
     if avg_sentiment > 0.6 and tweet_count > 10:
         prediction = "bullish"
@@ -328,7 +297,7 @@ async def sentiment_based_prediction(
     else:
         prediction = "neutral"
         confidence = 0.5
-    
+
     return {
         "stock": stock,
         "lookback_days": lookback_days,
@@ -337,7 +306,7 @@ async def sentiment_based_prediction(
         "avg_sentiment": round(avg_sentiment, 3),
         "tweet_volume": tweet_count,
         "sentiment_volatility": round(sentiment_volatility, 3) if sentiment_volatility else None,
-        "interpretation": _interpret_prediction(prediction, confidence)
+        "interpretation": _interpret_prediction(prediction, confidence),
     }
 
 
@@ -345,36 +314,37 @@ def _interpret_prediction(prediction: str, confidence: float) -> str:
     """Helper function to interpret prediction results"""
     if prediction == "bullish":
         if confidence > 0.7:
-            return f"Strong bullish signal - high positive sentiment suggests price increase likely"
-        else:
-            return f"Moderate bullish signal - positive sentiment but with some uncertainty"
-    elif prediction == "bearish":
+            return "Strong bullish signal - high positive sentiment suggests price increase likely"
+        
+        return "Moderate bullish signal - positive sentiment but with some uncertainty"
+    
+    if prediction == "bearish":
         if confidence > 0.7:
-            return f"Strong bearish signal - high negative sentiment suggests price decrease likely"
-        else:
-            return f"Moderate bearish signal - negative sentiment but with some uncertainty"
-    elif prediction == "neutral":
+            return "Strong bearish signal - high negative sentiment suggests price decrease likely"
+        
+        return "Moderate bearish signal - negative sentiment but with some uncertainty"
+    
+    if prediction == "neutral":
         return "Neutral signal - sentiment is mixed or inconclusive"
-    else:
-        return "Insufficient data for prediction"
+    
+    return "Insufficient data for prediction"
 
 
 @router.get("/volatility/social-driven")
 async def social_driven_volatility(
-    min_tweets: int = Query(default=50, ge=10),
-    limit: int = Query(default=20, ge=1, le=50)
+    min_tweets: int = Query(default=50, ge=10), limit: int = Query(default=20, ge=1, le=50)
 ):
     """
     Identify stocks with high volatility driven by social media activity.
     Returns stocks with high sentiment variance and tweet volume.
-    
+
     Volatility is calculated as: sentiment_std × sqrt(tweet_count)
     This amplifies volatility for stocks with both high variance AND high volume.
-    
+
     Args:
         min_tweets: Minimum tweet threshold to consider (default: 50)
         limit: Maximum number of stocks to return (default: 20, max: 50)
-    
+
     Returns:
         {
             "min_tweets_threshold": minimum tweets required,
@@ -407,34 +377,25 @@ async def social_driven_volatility(
     LIMIT $limit
     RETURN ticker, tweet_count, avg_sentiment, sentiment_std, volatility_score
     """
-    
-    result = neo4j_service.run_query(cypher, {
-        "min_tweets": min_tweets,
-        "limit": limit
-    })
-    
+
+    result = neo4j_service.run_query(cypher, {"min_tweets": min_tweets, "limit": limit})
+
     volatile_stocks = []
     for r in result:
         stock_data = dict(r)
-        stock_data["interpretation"] = _interpret_volatility(
-            stock_data["sentiment_std"],
-            stock_data["tweet_count"]
-        )
+        stock_data["interpretation"] = _interpret_volatility(stock_data["sentiment_std"], stock_data["tweet_count"])
         volatile_stocks.append(stock_data)
-    
-    return {
-        "min_tweets_threshold": min_tweets,
-        "volatile_stocks": volatile_stocks
-    }
+
+    return {"min_tweets_threshold": min_tweets, "volatile_stocks": volatile_stocks}
 
 
 def _interpret_volatility(sentiment_std: float, tweet_count: int) -> str:
     """Helper function to interpret volatility metrics"""
     if sentiment_std > 0.3:
         return f"Very high volatility - sentiment is highly unpredictable ({tweet_count} tweets)"
-    elif sentiment_std > 0.2:
+    if sentiment_std > 0.2:
         return f"High volatility - sentiment varies significantly ({tweet_count} tweets)"
-    elif sentiment_std > 0.1:
+    if sentiment_std > 0.1:
         return f"Moderate volatility - some sentiment variation ({tweet_count} tweets)"
-    else:
-        return f"Low volatility - sentiment is relatively stable ({tweet_count} tweets)"
+    
+    return f"Low volatility - sentiment is relatively stable ({tweet_count} tweets)"

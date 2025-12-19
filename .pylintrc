@@ -1,0 +1,24 @@
+[MASTER]
+ignore=CVS,.git,.pytest_cache,__pycache__
+load-plugins=pylint.extensions.docparams
+
+[MESSAGES CONTROL]
+# Disable the message, report, category or checker with the given id(s).
+# C0111: Missing docstring
+# C0103: Invalid name (too strict for short vars like 'x', 'db', 'id')
+# R0903: Too few public methods (need for Pydantic models sometimes)
+# W0611: Unused imports (handled by flake8/ruff usually, but pylint is good too, keeping it on except for init files?)
+# E0401: Import error (often happens in CI/CD without venv activated properly) - keeping enabled but aware.
+disable=C0111, C0103, R0903, R0801
+
+[FORMAT]
+# Maximum number of characters on a single line.
+max-line-length=120
+
+[BASIC]
+# Regular expression matching correct argument names
+argument-rgx=[a-z_][a-z0-9_]{2,30}$
+
+[DESIGN]
+# Maximum number of arguments for function / method.
+max-args=10

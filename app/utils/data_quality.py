@@ -4,6 +4,7 @@ Run directly:
   python -m app.utils.data_quality --prices "data/Stock Tweets Sentiment Analysis/stock_yfinance_data.csv" \
                                    --social "data/Stock Tweets Sentiment Analysis/stock_tweets.csv"
 """
+
 import argparse
 import os
 from typing import Dict, Any, List, Tuple
@@ -113,4 +114,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  neo4j_test:
+    image: neo4j:5.12
+    container_name: neo4j_test_runner
+    ports:
+      - "7475:7474" # Browser (different port)
+      - "7688:7687" # Bolt (different port)
+    environment:
+      NEO4J_AUTH: neo4j/password
+      NEO4J_PLUGINS: '["apoc", "graph-data-science"]'
+      NEO4J_dbms_security_procedures_unrestricted: apoc.*
+      # Optimization for testing (less memory)
+      NEO4J_dbms_memory_heap_initial__size: 512m
+      NEO4J_dbms_memory_heap_max__size: 512m
+    # No volume mapping needed (ephemeral data)
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider localhost:7474 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5

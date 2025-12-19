@@ -57,7 +57,17 @@ docker-run:
 
 # Testing & Verification
 test: install
-	@. $(VENV)/bin/activate && pytest
+	@. $(VENV)/bin/activate && pytest tests/test_api.py
+
+test-integration: install
+	@echo "Starting Test Database..."
+	$(DOCKER_COMPOSE) -f docker-compose.test.yml up -d --wait
+	@echo "Running Integration Tests..."
+	@# Run pytest with test env vars. If it fails, catch error, down docker, and re-throw.
+	@. $(VENV)/bin/activate && NEO4J_URI=bolt://localhost:7688 NEO4J_PASSWORD=password pytest tests/test_integration.py || \
+		($(DOCKER_COMPOSE) -f docker-compose.test.yml down && exit 1)
+	@echo "Stopping Test Database..."
+	$(DOCKER_COMPOSE) -f docker-compose.test.yml down
 
 verify: install
 	@. $(VENV)/bin/activate && python verify_mvp.py

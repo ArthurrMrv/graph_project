@@ -5,3 +5,5 @@ pandas
 huggingface_hub
 python-dotenv
 pytest
+pylint
+black
