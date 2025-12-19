@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Knowledge Graph Pipeline</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <div class="container">
+        <header>
+            <h1>Pipeline Runner</h1>
+            <p>Ingest Stock & Tweet Data with Sentiment Analysis</p>
+        </header>
+
+        <!-- Tab Navigation -->
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="pipeline">Pipeline Runner</button>
+            <button class="tab-btn" data-tab="analytics">Analytics</button>
+        </div>
+
+        <!-- PIPELINE VIEW -->
+        <div id="pipeline-view" class="view-section">
+            <div class="glass-card">
+                <form id="pipelineForm">
+                    <div class="form-group">
+                        <label for="stock">select stock</label>
+                        <div class="select-wrapper">
+                            <select id="stock" name="stock" required>
+                                <option value="TSLA" selected>TSLA (Tesla)</option>
+                                <option value="TSM">TSM (TSMC)</option>
+                                <option value="AAPL">AAPL (Apple)</option>
+                                <option value="MSFT">MSFT (Microsoft)</option>
+                                <option value="PG">PG (Procter & Gamble)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="date-row">
+                        <div class="form-group">
+                            <label for="start_date">start date</label>
+                            <input type="date" id="start_date" name="start_date" required value="2021-10-01">
+                        </div>
+                        <div class="form-group">
+                            <label for="end_date">end date</label>
+                            <input type="date" id="end_date" name="end_date" required value="2021-10-03">
+                        </div>
+                    </div>
+
+                    <button type="submit" id="runBtn">
+                        <span class="btn-text">Run Pipeline</span>
+                        <div class="loading-spinner hidden"></div>
+                    </button>
+                </form>
+            </div>
+
+            <div id="outputArea" class="glass-card hidden">
+                <div class="output-header">
+                    <h2>Execution Results</h2>
+                    <span id="statusBadge" class="badge">Success</span>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <span class="stat-label">Stock Records</span>
+                        <span class="stat-value" id="stockRecords">-</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Tweets Imported</span>
+                        <span class="stat-value" id="tweetRecords">-</span>
+                    </div>
+                    <div class="stat-item highlight">
+                        <span class="stat-label">Sentiment Processed</span>
+                        <span class="stat-value" id="sentimentProcessed">-</span>
+                    </div>
+                    <div class="stat-item highlight">
+                        <span class="stat-label">Sentiment Updated</span>
+                        <span class="stat-value" id="sentimentUpdated">-</span>
+                    </div>
+                </div>
+                <div class="log-container">
+                    <pre id="jsonOutput"></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- ANALYTICS VIEW -->
+        <div id="analytics-view" class="view-section hidden">
+            <div class="glass-card">
+                <div class="form-group">
+                    <label for="analytics-stock">Select Stock to Analyze</label>
+                    <div class="select-wrapper">
+                        <select id="analytics-stock">
+                            <option value="TSLA" selected>TSLA (Tesla)</option>
+                            <option value="TSM">TSM (TSMC)</option>
+                            <option value="AAPL">AAPL (Apple)</option>
+                            <option value="MSFT">MSFT (Microsoft)</option>
+                            <option value="PG">PG (Procter & Gamble)</option>
+                        </select>
+                    </div>
+                </div>
+                <button id="loadAnalyticsBtn">Load Analysis</button>
+            </div>
+
+            <div class="charts-grid">
+                <div class="glass-card chart-container">
+                    <canvas id="correlationChart"></canvas>
+                </div>
+                <div class="glass-card chart-container donut-container">
+                    <h3>Sentiment Distribution</h3>
+                    <div class="donut-wrapper">
+                        <canvas id="sentimentDonut"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
