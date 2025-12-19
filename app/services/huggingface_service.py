@@ -79,7 +79,7 @@ class HuggingFaceService:
         # Fallback if result format is unexpected (removed else)
         return {"sentiment": 0, "confidence": 0.0}
 
-    def batch_analyze_sentiment(self, texts: List[str]) -> List[Dict[str, float]]:
+    def batch_analyze_sentiment(self, texts: List[str]) -> List[Dict[str, float]]:  # pylint: disable=too-many-branches
         """
         Analyze sentiment for multiple texts using batch processing if supported.
         Falls back to individual processing if batch is not supported.
@@ -104,34 +104,34 @@ class HuggingFaceService:
             if isinstance(result, list):
                 if len(result) == 0:
                     return []
-                
+
                 first_item = result[0]
-                
+
                 if isinstance(first_item, list):
                     return [self._process_single_result(r) for r in result]
-                
 
-                elif hasattr(first_item, 'label') or (isinstance(first_item, dict) and 'label' in first_item):
-                     processed_list = []
-                     for r in result:
-                         if hasattr(r, 'to_dict'):
-                             r_dict = r.to_dict()
-                         elif hasattr(r, 'dict'):
-                             r_dict = r.dict() 
-                         elif isinstance(r, dict):
-                             r_dict = r
-                         else:
-                             r_dict = {'label': getattr(r, 'label', ''), 'score': getattr(r, 'score', 0.0)}
-                         
-                         processed_list.append(self._process_single_result([r_dict]))
-                     return processed_list
 
-                else:
-                    raise ValueError("Unexpected batch result format")
-            else:
-                # Single result, fall back to individual
-                raise ValueError("Batch not supported, got single result")
-                
+                if hasattr(first_item, "label") or (isinstance(first_item, dict) and "label" in first_item):
+                    processed_list = []
+                    for r in result:
+                        if hasattr(r, "to_dict"):
+                            r_dict = r.to_dict()
+                        elif hasattr(r, "dict"):
+                            r_dict = r.dict()
+                        elif isinstance(r, dict):
+                            r_dict = r
+                        else:
+                            r_dict = {"label": getattr(r, "label", ""), "score": getattr(r, "score", 0.0)}
+
+                        processed_list.append(self._process_single_result([r_dict]))
+                    return processed_list
+
+                raise ValueError("Unexpected batch result format")
+
+            # Single result, fall back to individual
+            raise ValueError("Batch not supported, got single result")
+
+
         except (TypeError, ValueError, AttributeError) as e:
             # Batch processing not supported or failed, fall back to individual processing
             print(f"Batch processing not supported, falling back to individual processing: {e}")

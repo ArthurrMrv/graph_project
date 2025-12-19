@@ -1,12 +1,7 @@
-import time
 from fastapi import APIRouter, HTTPException
-from app.models import SentimentRequest, SentimentResponse, SyncSentimentsRequest, SyncSentimentsResponse
+from app.models import SentimentRequest, SentimentResponse
 from app.services.huggingface_service import get_hf_service
-from app.services.neo4j_service import neo4j_service
 from app.config import settings
-from typing import List, Dict, Any
-import time
-
 
 
 router = APIRouter()
@@ -34,6 +29,3 @@ async def analyze_sentiment(request: SentimentRequest):
         raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error analyzing sentiment: {str(e)}") from e
-
-
-

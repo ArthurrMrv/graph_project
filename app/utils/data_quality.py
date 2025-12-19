@@ -7,7 +7,7 @@ Run directly:
 
 import argparse
 import os
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any, List
 
 import pandas as pd
 
@@ -16,10 +16,9 @@ PRICES_DEFAULT = "data/Stock Tweets Sentiment Analysis/stock_yfinance_data.csv"
 SOCIAL_DEFAULT = "data/Stock Tweets Sentiment Analysis/stock_tweets.csv"
 
 
-def _check_required_columns(df: pd.DataFrame, required: List[str]) -> Tuple[List[str], List[str]]:
+def _check_required_columns(df: pd.DataFrame, required: List[str]) -> List[str]:
     missing = [c for c in required if c not in df.columns]
-    present = [c for c in required if c in df.columns]
-    return missing, present
+    return missing
 
 
 def check_prices(csv_path: str = PRICES_DEFAULT) -> Dict[str, Any]:
@@ -28,7 +27,7 @@ def check_prices(csv_path: str = PRICES_DEFAULT) -> Dict[str, Any]:
 
     df = pd.read_csv(csv_path)
     required = ["Date", "Stock Name", "Close", "Volume"]
-    missing, present = _check_required_columns(df, required)
+    missing = _check_required_columns(df, required)
     report: Dict[str, Any] = {
         "status": "ok" if not missing else "missing_columns",
         "rows": len(df),
@@ -65,7 +64,7 @@ def check_social(csv_path: str = SOCIAL_DEFAULT) -> Dict[str, Any]:
 
     df = pd.read_csv(csv_path, on_bad_lines="skip")
     required = ["Date", "Tweet", "Stock Name"]
-    missing, present = _check_required_columns(df, required)
+    missing = _check_required_columns(df, required)
     report: Dict[str, Any] = {
         "status": "ok" if not missing else "missing_columns",
         "rows": len(df),

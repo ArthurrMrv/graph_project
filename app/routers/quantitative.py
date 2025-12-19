@@ -111,7 +111,7 @@ def _interpret_correlation(corr: float) -> str:
         return "Weak/no correlation - sentiment does not reliably predict price movement"
     if corr >= -0.7:
         return "Moderate negative correlation - positive sentiment predicts price decreases"
-    
+
     return "Strong negative correlation - sentiment inversely predicts price movement"
 
 
@@ -121,7 +121,7 @@ async def trending_stocks(
 ):
     """
     Return trending stocks based on tweet volume and sentiment in a time window.
-    
+
     Args:
         window: Time window - 'hourly', 'daily', or 'weekly' (default: daily)
         limit: Maximum number of trending stocks to return (default: 10, max: 50)
@@ -154,7 +154,7 @@ async def trending_stocks(
     cypher = """
     MATCH (t:Tweet)-[:DISCUSSES]->(s:Stock)
     WHERE t.date >= $start_time
-    WITH s, 
+    WITH s,
          count(t) AS tweet_volume,
          avg(CASE WHEN t.sentiment IS NOT NULL THEN t.sentiment ELSE null END) AS avg_sentiment,
          count(CASE WHEN t.sentiment IS NOT NULL THEN 1 ELSE null END) AS sentiment_count
@@ -259,7 +259,7 @@ async def sentiment_based_prediction(stock: str, lookback_days: int = Query(defa
     MATCH (t:Tweet)-[:DISCUSSES]->(s:Stock {ticker: $ticker})
     WHERE t.date >= $start_date AND t.date <= $end_date
       AND t.sentiment IS NOT NULL
-    WITH s, 
+    WITH s,
          avg(t.sentiment) AS avg_sentiment,
          count(t) AS tweet_count,
          stDev(t.sentiment) AS sentiment_volatility
@@ -315,18 +315,18 @@ def _interpret_prediction(prediction: str, confidence: float) -> str:
     if prediction == "bullish":
         if confidence > 0.7:
             return "Strong bullish signal - high positive sentiment suggests price increase likely"
-        
+
         return "Moderate bullish signal - positive sentiment but with some uncertainty"
-    
+
     if prediction == "bearish":
         if confidence > 0.7:
             return "Strong bearish signal - high negative sentiment suggests price decrease likely"
-        
+
         return "Moderate bearish signal - negative sentiment but with some uncertainty"
-    
+
     if prediction == "neutral":
         return "Neutral signal - sentiment is mixed or inconclusive"
-    
+
     return "Insufficient data for prediction"
 
 
@@ -397,5 +397,5 @@ def _interpret_volatility(sentiment_std: float, tweet_count: int) -> str:
         return f"High volatility - sentiment varies significantly ({tweet_count} tweets)"
     if sentiment_std > 0.1:
         return f"Moderate volatility - some sentiment variation ({tweet_count} tweets)"
-    
+
     return f"Low volatility - sentiment is relatively stable ({tweet_count} tweets)"
