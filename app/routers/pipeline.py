@@ -7,6 +7,7 @@ import pandas as pd
 from pydantic import BaseModel
 
 from app.services.neo4j_service import neo4j_service
+from app.services.sentiment_workflow import process_missing_sentiments
 
 router = APIRouter()
 
@@ -212,10 +213,22 @@ async def dataset_to_graph(request: PipelineRequest):  # pylint: disable=too-man
             neo4j_service.run_query(tweet_cypher, {"rows": rows})
             tweet_records += len(rows)
 
-    return {
+    result = {
         "status": "success",
         "stock": request.stock,
         "prices_synced": stock_records,
         "tweets_imported": tweet_records,
         "notes": "Pipeline executed with enhanced graph capabilities (User/Topic/Event support involved)",
     }
+
+    
+    sentiment_result = await process_missing_sentiments(
+        stock=request.stock,
+        start_date=start_date.strftime("%Y-%m-%d") if start_date else None,
+        end_date=end_date.strftime("%Y-%m-%d") if end_date else None,
+        batch_size=100
+    )
+    
+    result["sentiment_processing"] = sentiment_result
+    
+    return result
