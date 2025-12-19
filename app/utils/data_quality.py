@@ -37,7 +37,7 @@ def check_prices(csv_path: str = PRICES_DEFAULT) -> Dict[str, Any]:
         return report
 
     # Date parsing
-    parsed_dates = pd.to_datetime(df["Date"], errors="coerce")
+    parsed_dates = pd.to_datetime(df["Date"], errors="coerce", format="mixed")
     invalid_dates = parsed_dates.isna().sum()
 
     # Numeric checks
@@ -73,7 +73,7 @@ def check_social(csv_path: str = SOCIAL_DEFAULT) -> Dict[str, Any]:
     if missing:
         return report
 
-    parsed_dates = pd.to_datetime(df["Date"], errors="coerce")
+    parsed_dates = pd.to_datetime(df["Date"], errors="coerce", format="mixed")
     invalid_dates = parsed_dates.isna().sum()
 
     # Simple null checks on critical fields

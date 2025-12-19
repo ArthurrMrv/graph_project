@@ -3,13 +3,20 @@ from typing import Optional
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Query
 from app.services.neo4j_service import neo4j_service
+from app.models import (
+    CorrelationResponse,
+    TrendingStocksResponse,
+    TopInfluencersResponse,
+    PredictionResponse,
+    VolatilityResponse
+)
 
 # pylint: disable=too-many-locals
 
 router = APIRouter()
 
 
-@router.get("/correlation/sentiment-price/{stock}")
+@router.get("/correlation/sentiment-price/{stock}", response_model=CorrelationResponse)
 async def sentiment_price_correlation(
     stock: str,
     start_date: Optional[str] = None,
@@ -117,7 +124,7 @@ def _interpret_correlation(corr: float) -> str:
     return "Strong negative correlation - sentiment inversely predicts price movement"
 
 
-@router.get("/trending/stocks")
+@router.get("/trending/stocks", response_model=TrendingStocksResponse)
 async def trending_stocks(
     window: str = Query(default="daily", pattern="^(hourly|daily|weekly)$"), limit: int = Query(default=10, ge=1, le=50)
 ):
@@ -176,7 +183,7 @@ async def trending_stocks(
     return {"window": window, "start_time": start_time, "trending_stocks": [dict(r) for r in result]}
 
 
-@router.get("/influencers/{stock}")
+@router.get("/influencers/{stock}", response_model=TopInfluencersResponse)
 async def top_influencers(stock: str, limit: int = Query(default=20, ge=1, le=100)):
     """
     Return top influencers for a specific stock based on:
@@ -233,7 +240,7 @@ async def top_influencers(stock: str, limit: int = Query(default=20, ge=1, le=10
     return {"stock": stock, "top_influencers": [dict(r) for r in result]}
 
 
-@router.get("/prediction/sentiment-based/{stock}")
+@router.get("/prediction/sentiment-based/{stock}", response_model=PredictionResponse)
 async def sentiment_based_prediction(stock: str, lookback_days: int = Query(default=7, ge=1, le=30)):
     """
     Simple sentiment-based price movement prediction using recent sentiment trends.
@@ -332,7 +339,7 @@ def _interpret_prediction(prediction: str, confidence: float) -> str:
     return "Insufficient data for prediction"
 
 
-@router.get("/volatility/social-driven")
+@router.get("/volatility/social-driven", response_model=VolatilityResponse)
 async def social_driven_volatility(
     min_tweets: int = Query(default=50, ge=10), limit: int = Query(default=20, ge=1, le=50)
 ):

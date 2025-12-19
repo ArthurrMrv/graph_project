@@ -1,25 +1,21 @@
 import hashlib
 import re
 import os
-from typing import Optional, List
+import logging
+from typing import List
 from fastapi import APIRouter
 import pandas as pd
-from pydantic import BaseModel
 
 from app.services.neo4j_service import neo4j_service
 from app.services.sentiment_workflow import process_missing_sentiments
+from app.models import PipelineRequest, PipelineResponse
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
 STOCKS_CSV = "data/Stock Tweets Sentiment Analysis/stock_yfinance_data.csv"
 SOCIAL_CSV = "data/Stock Tweets Sentiment Analysis/stock_tweets.csv"
-
-
-class PipelineRequest(BaseModel):
-    stock: str
-    start_date: Optional[str] = None
-    end_date: Optional[str] = None
-    chunk_size: int = 2000
 
 
 def _extract_hashtags(text: str) -> List[str]:
@@ -30,7 +26,7 @@ def _extract_mentions(text: str) -> List[str]:
     return re.findall(r"@(\w+)", text or "")
 
 
-@router.post("/dataset_to_graph", tags=["Pipeline"])
+@router.post("/dataset_to_graph", tags=["Pipeline"], response_model=PipelineResponse)
 async def dataset_to_graph(request: PipelineRequest):  # pylint: disable=too-many-locals, too-many-branches, too-many-statements
     """
     Unified pipeline to ingest both Stock Price data and Social Tweets for a given ticker.
@@ -52,12 +48,12 @@ async def dataset_to_graph(request: PipelineRequest):  # pylint: disable=too-man
     default_end = pd.to_datetime("2024-01-01")
     # Validate date strings - check if they're not None, not empty, and not the literal "string"
     start_date = (
-        pd.to_datetime(request.start_date)
+        pd.to_datetime(request.start_date, format="mixed")
         if (request.start_date and request.start_date.strip() and request.start_date != "string")
         else default_start
     )
     end_date = (
-        pd.to_datetime(request.end_date)
+        pd.to_datetime(request.end_date, format="mixed")
         if (request.end_date and request.end_date.strip() and request.end_date != "string")
         else default_end
     )
@@ -80,7 +76,7 @@ async def dataset_to_graph(request: PipelineRequest):  # pylint: disable=too-man
 
     # Read Stock CSV
     for chunk in pd.read_csv(STOCKS_CSV, chunksize=request.chunk_size):
-        chunk["Date"] = pd.to_datetime(chunk["Date"], errors="coerce")
+        chunk["Date"] = pd.to_datetime(chunk["Date"], errors="coerce", format="mixed")
         mask = (chunk["Date"] >= start_date) & (chunk["Date"] <= end_date) & (chunk["Stock Name"] == request.stock)
         filtered = chunk.loc[mask]
 
@@ -158,7 +154,7 @@ async def dataset_to_graph(request: PipelineRequest):  # pylint: disable=too-man
 
     # Read Social CSV
     for chunk in pd.read_csv(SOCIAL_CSV, chunksize=request.chunk_size, on_bad_lines="skip"):
-        chunk["Date"] = pd.to_datetime(chunk["Date"], errors="coerce")
+        chunk["Date"] = pd.to_datetime(chunk["Date"], errors="coerce", format="mixed")
         chunk["Date"] = chunk["Date"].dt.tz_localize(None)
 
         mask = (chunk["Date"] >= start_date) & (chunk["Date"] <= end_date) & (chunk["Stock Name"] == request.stock)

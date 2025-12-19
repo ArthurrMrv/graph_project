@@ -1,10 +1,19 @@
 from fastapi import APIRouter
 from app.services.neo4j_service import neo4j_service
+from app.models import (
+    InfluenceResponse,
+    SentimentCascadeResponse,
+    StockClustersResponse,
+    TimelineEventsResponse,
+    GDSGlobalInfluenceResponse,
+    GDSStockCommunitiesResponse,
+    GDSStockSimilarityResponse
+)
 
 router = APIRouter()
 
 
-@router.get("/network/influence/{user_id}")
+@router.get("/network/influence/{user_id}", response_model=InfluenceResponse)
 async def network_influence(user_id: str, limit: int = 20):
     """
     Return the top influencers near a user based on out-degree in a local ego graph.
@@ -28,7 +37,7 @@ async def network_influence(user_id: str, limit: int = 20):
     return {"user": user_id, "top_influencers": [dict(r) for r in result]}
 
 
-@router.get("/cascade/sentiment/{tweet_id}")
+@router.get("/cascade/sentiment/{tweet_id}", response_model=SentimentCascadeResponse)
 async def cascade_sentiment(tweet_id: str, depth: int = 3):
     """
     Explore a cascade of references (REFERENCES->Tweet) and compute simple sentiment stats downstream.
@@ -48,7 +57,7 @@ async def cascade_sentiment(tweet_id: str, depth: int = 3):
     return {"tweet_id": tweet_id, "depth": depth, "stats": stats}
 
 
-@router.get("/clusters/stocks")
+@router.get("/clusters/stocks", response_model=StockClustersResponse)
 async def clusters_stocks(limit: int = 10):
     """
     Simplified example: return hashtag co-occurrences between stocks as a light clustering proxy.
@@ -67,7 +76,7 @@ async def clusters_stocks(limit: int = 10):
     return {"clusters": [dict(r) for r in result]}
 
 
-@router.get("/timeline/events/{stock}")
+@router.get("/timeline/events/{stock}", response_model=TimelineEventsResponse)
 async def timeline_events(stock: str, limit: int = 50):
     """
     Return events linked to a ticker, ordered by date when available.
@@ -83,7 +92,7 @@ async def timeline_events(stock: str, limit: int = 50):
     return {"stock": stock, "events": [dict(r) for r in result]}
 
 
-@router.get("/gds/influence/global")
+@router.get("/gds/influence/global", response_model=GDSGlobalInfluenceResponse)
 async def gds_global_influence(limit: int = 20):
     """
     Use Neo4j GDS to compute global PageRank on the user influence graph.
@@ -112,7 +121,7 @@ async def gds_global_influence(limit: int = 20):
     return {"algorithm": "gds.pageRank", "top_users": [dict(r) for r in result]}
 
 
-@router.get("/gds/communities/stocks")
+@router.get("/gds/communities/stocks", response_model=GDSStockCommunitiesResponse)
 async def gds_stock_communities():
     """
     Use GDS Louvain to detect stock communities on a simplified co-mention graph.
@@ -138,7 +147,7 @@ async def gds_stock_communities():
     return {"algorithm": "gds.louvain", "stocks": [dict(r) for r in result]}
 
 
-@router.get("/gds/similarity/stocks/{ticker}")
+@router.get("/gds/similarity/stocks/{ticker}", response_model=GDSStockSimilarityResponse)
 async def gds_stock_similarity(ticker: str, k: int = 10):
     """
     Use GDS Node Similarity on a stock graph to return the most similar tickers.
