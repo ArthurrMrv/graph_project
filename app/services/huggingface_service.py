@@ -102,20 +102,36 @@ class HuggingFaceService:
 
             # If batch processing works, result should be a list of results
             if isinstance(result, list):
-                # Check if it's a list of results (batch) or a single result
-                if len(result) > 0 and isinstance(result[0], list):
-                    # Batch result: each element is a list of label/score dicts
+                if len(result) == 0:
+                    return []
+                
+                first_item = result[0]
+                
+                if isinstance(first_item, list):
                     return [self._process_single_result(r) for r in result]
-                if len(result) > 0 and isinstance(result[0], dict) and "label" in result[0]:
-                    # Single result (API might have processed as single)
-                    return [self._process_single_result(result)]
+                
 
-                # Unexpected format, fall back to individual
-                raise ValueError("Unexpected batch result format")
+                elif hasattr(first_item, 'label') or (isinstance(first_item, dict) and 'label' in first_item):
+                     processed_list = []
+                     for r in result:
+                         if hasattr(r, 'to_dict'):
+                             r_dict = r.to_dict()
+                         elif hasattr(r, 'dict'):
+                             r_dict = r.dict() 
+                         elif isinstance(r, dict):
+                             r_dict = r
+                         else:
+                             r_dict = {'label': getattr(r, 'label', ''), 'score': getattr(r, 'score', 0.0)}
+                         
+                         processed_list.append(self._process_single_result([r_dict]))
+                     return processed_list
 
-            # Single result, fall back to individual
-            raise ValueError("Batch not supported, got single result")
-
+                else:
+                    raise ValueError("Unexpected batch result format")
+            else:
+                # Single result, fall back to individual
+                raise ValueError("Batch not supported, got single result")
+                
         except (TypeError, ValueError, AttributeError) as e:
             # Batch processing not supported or failed, fall back to individual processing
             print(f"Batch processing not supported, falling back to individual processing: {e}")
