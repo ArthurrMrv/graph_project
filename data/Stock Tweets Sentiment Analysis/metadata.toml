@@ -1,0 +1,47 @@
+# Metadata for Stock Tweets Sentiment Analysis Dataset
+
+[dataset]
+name = "Stock Tweets Sentiment Analysis"
+description = "Dataset containing tweets for top 25 most watched stock tickers on Yahoo Finance from 30-09-2021 to 30-09-2022, with corresponding stock market price and volume data"
+date_range = "2021-09-30 to 2022-09-30"
+source = "Yahoo Finance"
+use_cases = [
+    "Sentiment analysis experiments",
+    "Stock price prediction",
+    "Exploring connection between public sentiment and stock price movement"
+]
+
+[files.stock_tweets]
+filename = "stock_tweets.csv"
+description = "Twitter data containing tweets about top stock tickers"
+row_count = 299600  # Excluding header
+columns = [
+    { name = "Date", type = "datetime", description = "Date and time of tweet" },
+    { name = "Tweet", type = "string", description = "Full text of the tweet" },
+    { name = "Stock Name", type = "string", description = "Stock ticker name for which the tweet was scraped" },
+    { name = "Company Name", type = "string", description = "Full company name for corresponding tweet and stock ticker" }
+]
+encoding = "utf-8"
+delimiter = ","
+
+[files.stock_yfinance_data]
+filename = "stock_yfinance_data.csv"
+description = "Stock market price and volume data for corresponding dates and stocks"
+row_count = 6300  # Excluding header
+columns = [
+    { name = "Date", type = "date", description = "Trading date" },
+    { name = "Open", type = "float", description = "Opening price" },
+    { name = "High", type = "float", description = "Highest price of the day" },
+    { name = "Low", type = "float", description = "Lowest price of the day" },
+    { name = "Close", type = "float", description = "Closing price" },
+    { name = "Adj Close", type = "float", description = "Adjusted closing price" },
+    { name = "Volume", type = "integer", description = "Trading volume" },
+    { name = "Stock Name", type = "string", description = "Stock ticker name" }
+]
+encoding = "utf-8"
+delimiter = ","
+
+[relationships]
+join_key = "Stock Name"
+date_key = "Date"
+note = "Both datasets can be joined on 'Stock Name' and 'Date' fields for analysis"
