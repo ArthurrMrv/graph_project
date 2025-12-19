@@ -1,9 +1,13 @@
+import logging
 from neo4j import GraphDatabase
 from app.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class Neo4jService:
     def __init__(self):
+        logger.info("Connecting to Neo4j at %s", settings.NEO4J_URI)
         self.driver = GraphDatabase.driver(settings.NEO4J_URI, auth=(settings.NEO4J_USER, settings.NEO4J_PASSWORD))
 
     def close(self):

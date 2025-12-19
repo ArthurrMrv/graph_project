@@ -1,6 +1,9 @@
 import os
+import logging
 from typing import Dict, Optional, List
 from huggingface_hub import InferenceClient
+
+logger = logging.getLogger(__name__)
 
 
 class HuggingFaceService:
@@ -18,7 +21,7 @@ class HuggingFaceService:
 
         self.api_key = api_key
 
-        print(f"Using API key: {api_key}")
+        logger.info("Using HF Inference Client")
 
         self.client = InferenceClient(
             provider="hf-inference",
@@ -45,7 +48,7 @@ class HuggingFaceService:
             return self._process_single_result(result)
 
         except Exception as e:  # pylint: disable=broad-exception-caught
-            print(f"Error calling Hugging Face API: {e}")
+            logger.error("Error calling Hugging Face API: %s", e)
             return {"sentiment": 0, "confidence": 0.0}
 
     def _process_single_result(self, result) -> Dict[str, float]:
@@ -134,26 +137,26 @@ class HuggingFaceService:
 
         except (TypeError, ValueError, AttributeError) as e:
             # Batch processing not supported or failed, fall back to individual processing
-            print(f"Batch processing not supported, falling back to individual processing: {e}")
+            logger.warning("Batch processing not supported, falling back to individual processing: %s", e)
             results = []
             for text in texts:
                 try:
                     result = self.analyze_sentiment(text)
                     results.append(result)
                 except Exception as err:  # pylint: disable=broad-exception-caught
-                    print(f"Error analyzing sentiment for text: {err}")
+                    logger.error("Error analyzing sentiment for text: %s", err)
                     results.append({"sentiment": 0, "confidence": 0.0})
             return results
         except Exception as e:  # pylint: disable=broad-exception-caught
             # Other error, fall back to individual processing
-            print(f"Error in batch processing, falling back to individual: {e}")
+            logger.error("Error in batch processing, falling back to individual: %s", e)
             results = []
             for text in texts:
                 try:
                     result = self.analyze_sentiment(text)
                     results.append(result)
                 except Exception as err:  # pylint: disable=broad-exception-caught
-                    print(f"Error analyzing sentiment for text: {err}")
+                    logger.error("Error analyzing sentiment for text: %s", err)
                     results.append({"sentiment": 0, "confidence": 0.0})
             return results
 
