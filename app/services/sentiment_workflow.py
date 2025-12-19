@@ -11,7 +11,7 @@ async def process_missing_sentiments(  # pylint: disable=too-many-locals, too-ma
     batch_size: int = 100,
     overwrite: bool = False,
     limit: Optional[int] = None,
-    api_key: Optional[str] = None
+    api_key: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Analyze sentiment for tweets in Neo4j that are missing sentiment scores.
@@ -36,7 +36,7 @@ async def process_missing_sentiments(  # pylint: disable=too-many-locals, too-ma
         return {
             "status": "error",
             "message": f"Failed to initialize HuggingFace service: {str(e)}",
-            "tweets_processed": 0
+            "tweets_processed": 0,
         }
 
     # Build Cypher query to fetch tweets
@@ -79,11 +79,7 @@ async def process_missing_sentiments(  # pylint: disable=too-many-locals, too-ma
         tweets = neo4j_service.run_query(cypher_fetch, params)
     except Exception as e:  # pylint: disable=broad-exception-caught
         print(f"Error fetching tweets from Neo4j: {e}")
-        return {
-            "status": "error",
-            "message": f"Error fetching tweets: {str(e)}",
-            "tweets_processed": 0
-        }
+        return {"status": "error", "message": f"Error fetching tweets: {str(e)}", "tweets_processed": 0}
 
     if not tweets:
         return {
@@ -91,7 +87,7 @@ async def process_missing_sentiments(  # pylint: disable=too-many-locals, too-ma
             "message": "No tweets found requiring analysis",
             "tweets_processed": 0,
             "tweets_updated": 0,
-            "errors": 0
+            "errors": 0,
         }
 
     print(f"DEBUG: Service found {len(tweets)} tweets to process.")
@@ -104,7 +100,7 @@ async def process_missing_sentiments(  # pylint: disable=too-many-locals, too-ma
     valid_batch_size = max(1, min(batch_size, 100))
 
     for i in range(0, len(tweets), valid_batch_size):
-        batch = tweets[i:i + valid_batch_size]
+        batch = tweets[i : i + valid_batch_size]
         print(f"DEBUG: Processing batch {i//valid_batch_size + 1}, size {len(batch)}")
 
         texts_to_analyze = []
@@ -134,11 +130,7 @@ async def process_missing_sentiments(  # pylint: disable=too-many-locals, too-ma
                     sentiment = result.get("sentiment", 0)
                     confidence = result.get("confidence", 0.0)
 
-                    batch_updates.append({
-                        "id": tweet_ids[j],
-                        "sentiment": sentiment,
-                        "confidence": confidence
-                    })
+                    batch_updates.append({"id": tweet_ids[j], "sentiment": sentiment, "confidence": confidence})
                     tweets_processed += 1
 
             # Batch update Neo4j with sentiment scores
@@ -187,11 +179,9 @@ async def process_missing_sentiments(  # pylint: disable=too-many-locals, too-ma
                     RETURN count(t) AS updated
                     """
 
-                    update_result = neo4j_service.run_query(cypher_update, {
-                        "id": tweet_id,
-                        "sentiment": sentiment,
-                        "confidence": confidence
-                    })
+                    update_result = neo4j_service.run_query(
+                        cypher_update, {"id": tweet_id, "sentiment": sentiment, "confidence": confidence}
+                    )
 
                     if update_result and len(update_result) > 0 and update_result[0].get("updated", 0) > 0:
                         tweets_updated += 1
@@ -212,5 +202,5 @@ async def process_missing_sentiments(  # pylint: disable=too-many-locals, too-ma
         "stock": stock,
         "date_range": {"start": start_date, "end": end_date} if start_date or end_date else None,
         "debug_query": cypher_fetch,
-        "debug_params": params
+        "debug_params": params,
     }

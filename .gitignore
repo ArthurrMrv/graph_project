@@ -16,3 +16,5 @@ venv/
 # Docker generated files (volumes)
 # If your data volume is mapped directly to 'data' in your project root:
 # /data/
+
+AGENTS.md

@@ -8,12 +8,12 @@ if [ -f /.dockerenv ]; then
     echo "Running inside Docker, using system-wide commands..."
     PYTEST="pytest"
     PYLINT="pylint"
-elif [ -d "graph_env" ]; then
+elif [ -x "./graph_env/bin/pytest" ] && [ -x "./graph_env/bin/pylint" ]; then
     echo "Using local virtualenv (graph_env)..."
     PYTEST="./graph_env/bin/pytest"
     PYLINT="./graph_env/bin/pylint"
 else
-    echo "No virtualenv found, using system-wide commands..."
+    echo "graph_env missing or incomplete, falling back to system-wide commands..."
     PYTEST="pytest"
     PYLINT="pylint"
 fi
@@ -33,5 +33,4 @@ echo "Running Pylint check (Target > 9.5)..."
 PYTHONPATH=. $PYLINT app
 
 echo "All checks passed! The codebase is healthy."
-
 

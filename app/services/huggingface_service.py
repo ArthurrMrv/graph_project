@@ -113,7 +113,6 @@ class HuggingFaceService:
                 if isinstance(first_item, list):
                     return [self._process_single_result(r) for r in result]
 
-
                 if hasattr(first_item, "label") or (isinstance(first_item, dict) and "label" in first_item):
                     processed_list = []
                     for r in result:
@@ -133,7 +132,6 @@ class HuggingFaceService:
 
             # Single result, fall back to individual
             raise ValueError("Batch not supported, got single result")
-
 
         except (TypeError, ValueError, AttributeError) as e:
             # Batch processing not supported or failed, fall back to individual processing

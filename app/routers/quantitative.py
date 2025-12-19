@@ -8,7 +8,7 @@ from app.models import (
     TrendingStocksResponse,
     TopInfluencersResponse,
     PredictionResponse,
-    VolatilityResponse
+    VolatilityResponse,
 )
 
 # pylint: disable=too-many-locals
