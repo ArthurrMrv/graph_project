@@ -1,0 +1,22 @@
+# Ignore git history
+.git
+
+# Ignore dependency directories
+node_modules
+venv
+__pycache__
+
+# Ignore compiled files
+*.log
+*.tmp
+dist/
+
+demo.ipynb
+.github/
+
+# Ignore sensitive files (Crucial!)
+.env
+secrets.json
+Dockerfile
+.dockerignore
+
