@@ -183,7 +183,7 @@ async def stock_sentiment_correlation(ticker: str):
     RETURN date, close_price, tweet_count, avg_sentiment
     ORDER BY date ASC
     """
-    
+
     try:
         results = neo4j_service.run_query(cypher, {"ticker": ticker})
         return {
@@ -198,5 +198,5 @@ async def stock_sentiment_correlation(ticker: str):
                 for r in results
             ]
         }
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-exception-caught
         return {"error": str(e)}

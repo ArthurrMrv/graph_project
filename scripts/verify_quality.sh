@@ -21,7 +21,7 @@ fi
 
 # 1. Run Unit Tests
 echo "Running unit tests with coverage..."
-PYTHONPATH=. $PYTEST --cov=app --cov-report=term-missing tests/test_api.py tests/test_utils.py
+PYTHONPATH=. $PYTEST --cov=app --cov-report=term-missing tests/test_api.py tests/test_utils.py tests/test_analytics.py tests/test_quantitative.py tests/test_services.py
 
 # 2. Run Integration Tests
 echo "Running integration tests..."
