@@ -1,9 +1,9 @@
-from fastapi import APIRouter
-from typing import Optional, List
-import pandas as pd
 import hashlib
 import re
 import os
+from typing import Optional, List
+from fastapi import APIRouter
+import pandas as pd
 from pydantic import BaseModel
 
 from app.services.neo4j_service import neo4j_service
@@ -25,8 +25,12 @@ def _extract_hashtags(text: str) -> List[str]:
     return re.findall(r"#(\w+)", text or "")
 
 
+def _extract_mentions(text: str) -> List[str]:
+    return re.findall(r"@(\w+)", text or "")
+
+
 @router.post("/dataset_to_graph", tags=["Pipeline"])
-async def dataset_to_graph(request: PipelineRequest):
+async def dataset_to_graph(request: PipelineRequest):  # pylint: disable=too-many-locals, too-many-branches, too-many-statements
     """
     Unified pipeline to ingest both Stock Price data and Social Tweets for a given ticker.
     Automatically handles optional columns (User, Topics, Sentiment/Confidence) if present in CSV.
@@ -34,7 +38,7 @@ async def dataset_to_graph(request: PipelineRequest):
     Refactored Schema:
     - Nodes: Stock, TradingDay, Tweet, HashTag
     - Optional Nodes: User, Topic, NewsEvent (if data available)
-    - Relationships: PRICE_ON, DISCUSSES, ON_DATE, TAGGED_WITH, POSTED_BY, MENTIONS, REFERENCES
+    - Relationships: PRICE_ON, DISCUSSES, ON_DATE, TAGGED_WITH, POSTED_BY, MENTIONS, REFERENCES, MENTIONS_USER
     """
 
     # 1. Pipeline Setup
@@ -134,6 +138,11 @@ async def dataset_to_graph(request: PipelineRequest):
         MERGE (h:HashTag {tag: tag})
         MERGE (t)-[:TAGGED_WITH]->(h))
 
+    // Link to Mentions (Users mentioned in tweet text)
+    FOREACH (mention IN row.mentions |
+        MERGE (u:User {user_id: mention})
+        MERGE (t)-[:MENTIONS_USER]->(u))
+
     // Optional Links (only if present in CSV)
     FOREACH (usr IN CASE WHEN row.user_id IS NULL THEN [] ELSE [row.user_id] END |
         MERGE (u:User {user_id: usr})
@@ -190,6 +199,7 @@ async def dataset_to_graph(request: PipelineRequest):
                     "date": row["Date"].isoformat(),
                     "date_only": row["Date"].strftime("%Y-%m-%d"),
                     "hashtags": _extract_hashtags(text),
+                    "mentions": _extract_mentions(text),
                     "sentiment": sentiment,
                     "confidence": confidence,
                     "user_id": user_id,
