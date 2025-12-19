@@ -1,5 +1,4 @@
 from fastapi import APIRouter
-from typing import List, Dict, Any
 from app.services.neo4j_service import neo4j_service
 
 router = APIRouter()

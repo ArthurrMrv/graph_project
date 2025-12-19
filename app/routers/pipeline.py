@@ -122,7 +122,7 @@ async def dataset_to_graph(request: PipelineRequest):  # pylint: disable=too-man
     UNWIND $rows AS row
     MERGE (s:Stock {ticker: row.ticker})
     MERGE (t:Tweet {id: row.tweet_id})
-    SET t.text = row.text, 
+    SET t.text = row.text,
         t.date = row.date,
         t.sentiment = row.sentiment,
         t.confidence = row.confidence
@@ -221,14 +221,13 @@ async def dataset_to_graph(request: PipelineRequest):  # pylint: disable=too-man
         "notes": "Pipeline executed with enhanced graph capabilities (User/Topic/Event support involved)",
     }
 
-    
+
     sentiment_result = await process_missing_sentiments(
         stock=request.stock,
         start_date=start_date.strftime("%Y-%m-%d") if start_date else None,
         end_date=end_date.strftime("%Y-%m-%d") if end_date else None,
         batch_size=100
     )
-    
+
     result["sentiment_processing"] = sentiment_result
-    
     return result

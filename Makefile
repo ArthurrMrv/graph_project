@@ -20,7 +20,9 @@ help:
 	@echo "  make docker-build   Build project Docker image (TAG=$(TAG))"
 	@echo "  make docker-run     Run project Docker container on :8000"
 	@echo "  make test           Run unit tests (pytest)"
-	@echo "  make verify         Run the MVP verification script"
+	@echo "  make test-integration Run integration tests (local DB)"
+	@echo "  make docker-test    Run ALL tests + Pylint inside Docker"
+	@echo "  make verify         Run the quality verification pipeline"
 	@echo "  make ingest-demo    Ingest sample data (Tesla) - Server must be running!"
 	@echo "  make lint           Run pylint (if installed)"
 	@echo "  make format         Run black code formatter (if installed)"
@@ -61,24 +63,24 @@ test: install
 
 test-integration: install
 	@echo "Starting Test Database..."
-	$(DOCKER_COMPOSE) -f docker-compose.test.yml up -d --wait
+	$(DOCKER_COMPOSE) -f docker-compose.test.yml up -d neo4j_test --wait
 	@echo "Running Integration Tests..."
-	@# Run pytest with test env vars. If it fails, catch error, down docker, and re-throw.
 	@. $(VENV)/bin/activate && NEO4J_URI=bolt://localhost:7688 NEO4J_PASSWORD=password pytest tests/test_integration.py || \
 		($(DOCKER_COMPOSE) -f docker-compose.test.yml down && exit 1)
 	@echo "Stopping Test Database..."
 	$(DOCKER_COMPOSE) -f docker-compose.test.yml down
 
+docker-test:
+	@echo "Building and running all tests inside Docker..."
+	$(DOCKER_COMPOSE) -f docker-compose.test.yml up --build --exit-code-from tester
+	$(DOCKER_COMPOSE) -f docker-compose.test.yml down
+
 verify: install
-	@. $(VENV)/bin/activate && python verify_mvp.py
+	@chmod +x scripts/verify_quality.sh && ./scripts/verify_quality.sh
 
 ingest-demo:
-	@echo "Ingesting TSLA prices..."
-	curl -X POST "http://localhost:8000/api/stocks/sync" \
-		-H "Content-Type: application/json" \
-		-d '{"stock": "TSLA", "start_date": "2021-09-30", "end_date": "2022-09-30"}'
-	@echo "\nIngesting TSLA tweets..."
-	curl -X POST "http://localhost:8000/api/social/import" \
+	@echo "Ingesting TSLA data (Prices + Social)..."
+	curl -X POST "http://localhost:8000/api/pipeline/dataset_to_graph" \
 		-H "Content-Type: application/json" \
 		-d '{"stock": "TSLA", "start_date": "2021-09-30", "end_date": "2022-09-30"}'
 	@echo "\nDone."
