@@ -4,12 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.routers import sentiment, analytics, quantitative, pipeline
 
 # Setup logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("graph_app")
-
 
 
 app = FastAPI(title="Stock Sentiment Graph API")

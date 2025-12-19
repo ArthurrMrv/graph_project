@@ -27,7 +27,9 @@ def _extract_mentions(text: str) -> List[str]:
 
 
 @router.post("/dataset_to_graph", tags=["Pipeline"], response_model=PipelineResponse)
-async def dataset_to_graph(request: PipelineRequest):  # pylint: disable=too-many-locals, too-many-branches, too-many-statements
+async def dataset_to_graph(
+    request: PipelineRequest,
+):  # pylint: disable=too-many-locals, too-many-branches, too-many-statements
     """
     Unified pipeline to ingest both Stock Price data and Social Tweets for a given ticker.
     Automatically handles optional columns (User, Topics, Sentiment/Confidence) if present in CSV.
@@ -217,12 +219,11 @@ async def dataset_to_graph(request: PipelineRequest):  # pylint: disable=too-man
         "notes": "Pipeline executed with enhanced graph capabilities (User/Topic/Event support involved)",
     }
 
-
     sentiment_result = await process_missing_sentiments(
         stock=request.stock,
         start_date=start_date.strftime("%Y-%m-%d") if start_date else None,
         end_date=end_date.strftime("%Y-%m-%d") if end_date else None,
-        batch_size=100
+        batch_size=100,
     )
 
     result["sentiment_processing"] = sentiment_result

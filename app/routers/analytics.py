@@ -7,7 +7,7 @@ from app.models import (
     TimelineEventsResponse,
     GDSGlobalInfluenceResponse,
     GDSStockCommunitiesResponse,
-    GDSStockSimilarityResponse
+    GDSStockSimilarityResponse,
 )
 
 router = APIRouter()
@@ -193,10 +193,10 @@ async def stock_sentiment_correlation(ticker: str):
                     "date": r["date"],
                     "price": r["close_price"],
                     "sentiment": r["avg_sentiment"] if r["avg_sentiment"] is not None else 0,
-                    "volume": r["tweet_count"]
+                    "volume": r["tweet_count"],
                 }
                 for r in results
-            ]
+            ],
         }
     except Exception as e:  # pylint: disable=broad-exception-caught
         return {"error": str(e)}
