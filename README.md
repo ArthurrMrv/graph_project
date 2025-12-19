@@ -35,7 +35,7 @@ graph_project/
 │   ├── main.py                # FastAPI entrypoint
 │   ├── config.py              # Env vars
 │   ├── routers/
-│   │   ├── pipeline.py        # 🚀 UNIFIED INGESTION (Dataset -> Graph)
+│   │   ├── pipeline.py        # UNIFIED INGESTION (Dataset -> Graph)
 │   │   ├── analytics.py       # Graph Algos (Communities, Influence)
 │   │   ├── sentiment.py       # On-demand Sentiment (Hugging Face)
 │   │   └── quantitative.py    # Quant analysis (Correlations, Volatility)
@@ -79,30 +79,34 @@ make run
 ```
 Access docs at: `http://localhost:8000/docs`
 
-## Testing
+## Testing & Quality
 
-### Unit Tests (Fast & Mocked)
-Runs tests in `tests/test_api.py` using pytest. No Docker required.
+We prioritize high code quality (Pylint 10/10) and robust testing.
+
+### 1. Unified Quality Check (Recommended)
+Run all tests (Unit + Integration) and Pylint in one go using our portable script:
 ```bash
-make test
+./scripts/verify_quality.sh
+```
+*Note: Integration tests will automatically skip if Neo4j is not running.*
+
+### 2. Dockerized Testing (Full Isolation)
+To run the entire verification pipeline (including Integration tests with a real Neo4j DB) in a clean container:
+```bash
+docker compose -f docker-compose.test.yml up --build --exit-code-from tester
+docker compose -f docker-compose.test.yml down -v
 ```
 
-### Integration Tests (Deep Verification)
-Spins up a **temporary** Neo4j container on port 7688, loads test data, and verifies graph creation.
+### 3. Makefile Commands
 ```bash
-make test-integration
+make test           # Unit tests (Mocked)
+make test-integration # Integration tests (Local Neo4j)
+make docker-test    # Everything inside Docker (Tests + Pylint)
+make verify         # Run ./scripts/verify_quality.sh
+make lint           # Check code quality (Pylint 10/10)
+make ingest-demo    # Load sample Tesla data to the unified pipeline
 ```
 
-## Other Commands
-```bash
-make ingest-demo   # Load sample Tesla data (requires server running)
-make docker-build  # Build project Docker image
-make docker-run    # Run project in Docker
-make lint          # Check code quality (pylint)
-make format        # Format code (black)
-make clean         # Remove temp files
-make help          # List all commands
-```
 
 ## Ingestion (One-Shot)
 Run the full ingestion pipeline (stocks + tweets) for a specific ticker:

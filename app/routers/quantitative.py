@@ -4,6 +4,8 @@ from datetime import datetime, timedelta
 from fastapi import APIRouter, Query
 from app.services.neo4j_service import neo4j_service
 
+# pylint: disable=too-many-locals
+
 router = APIRouter()
 
 
