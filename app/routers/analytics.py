@@ -164,3 +164,39 @@ async def gds_stock_similarity(ticker: str, k: int = 10):
     """
     result = neo4j_service.run_query(cypher, {"ticker": ticker, "k": k})
     return {"algorithm": "gds.nodeSimilarity", "ticker": ticker, "similar": [dict(r) for r in result]}
+
+
+@router.get("/stock-sentiment/{ticker}")
+async def stock_sentiment_correlation(ticker: str):
+    """
+    Get daily stock closing price and aggregated sentiment/volume for a ticker.
+    Used for correlating stock movement with social sentiment.
+    """
+    cypher = """
+    MATCH (s:Stock {ticker: $ticker})-[r:PRICE_ON]->(d:TradingDay)
+    // Optional: Get Sentiment Stats for that day
+    OPTIONAL MATCH (t:Tweet)-[:DISCUSSES]->(s)
+    WHERE (t)-[:ON_DATE]->(d)
+    WITH d.date AS date, r.close AS close_price, 
+         count(t) AS tweet_count, 
+         avg(t.sentiment) AS avg_sentiment
+    RETURN date, close_price, tweet_count, avg_sentiment
+    ORDER BY date ASC
+    """
+    
+    try:
+        results = neo4j_service.run_query(cypher, {"ticker": ticker})
+        return {
+            "ticker": ticker,
+            "data": [
+                {
+                    "date": r["date"],
+                    "price": r["close_price"],
+                    "sentiment": r["avg_sentiment"] if r["avg_sentiment"] is not None else 0,
+                    "volume": r["tweet_count"]
+                }
+                for r in results
+            ]
+        }
+    except Exception as e:
+        return {"error": str(e)}
