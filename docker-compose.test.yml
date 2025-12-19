@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   neo4j_test:
     image: neo4j:5.12
@@ -13,9 +11,11 @@ services:
       NEO4J_dbms_security_procedures_unrestricted: apoc.*
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider localhost:7474 || exit 1"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
 
   tester:
     build: .
