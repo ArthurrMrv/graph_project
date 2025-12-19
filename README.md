@@ -4,6 +4,12 @@
   <img src="img/cover.png" alt="Cover" width="60%">
 </div>
 
+# Graph Project
+
+![Tests](https://github.com/ArthurrMrv/graph_project/actions/workflows/test.yml/badge.svg)
+![Lint](https://github.com/ArthurrMrv/graph_project/actions/workflows/lint.yml/badge.svg)
+[![Coverage](https://codecov.io/gh/ArthurrMrv/graph_project/branch/main/graph/badge.svg)](https://codecov.io/gh/ArthurrMrv/graph_project)
+
 FastAPI service that loads stock price data, social tweets, and AI-generated sentiment scores into a Neo4j knowledge graph for analysis. The API exposes endpoints to import tweets, sync historical OHLC data, and analyze sentiment using **Hugging Face (FinBERT)**.
 
 [![GitHub](https://img.shields.io/badge/GitHub-Repo-black?logo=github)](https://github.com/ArthurrMrv/graph_project.git)
