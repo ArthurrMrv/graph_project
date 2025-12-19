@@ -1,7 +1,7 @@
 # Stock Sentiment Graph API
 
 <div align="center">
-  <img src="img/cover.png" alt="Logo" width="200">
+  <img src="img/cover.png" alt="Logo" width="90%">
 </div>
 
 FastAPI service that loads stock price data, social tweets, and AI-generated sentiment scores into a Neo4j knowledge graph for analysis. The API exposes endpoints to import tweets, sync historical OHLC data, and analyze sentiment using **Hugging Face (FinBERT)**.
