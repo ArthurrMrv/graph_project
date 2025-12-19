@@ -123,3 +123,8 @@ curl -X POST "http://localhost:8000/api/pipeline/dataset_to_graph" \
 - **Influencers**: `GET /api/influencers/{stock}` (Network impact)
 - **Prediction**: `GET /api/prediction/sentiment-based/{stock}` (Bull/Bear based on sentiment trends)
 - **Volatility**: `GET /api/volatility/social-driven` (Sentiment variance)
+
+<div style="display: flex; gap: 10px;">
+  <img src="img/end1.jpeg" alt="meme1" width="50%">
+  <img src="img/end2.jpeg" alt="meme2" width="50%">
+</div>
