@@ -30,25 +30,33 @@ async def dataset_to_graph(request: PipelineRequest):
     """
     Unified pipeline to ingest both Stock Price data and Social Tweets for a given ticker.
     Automatically handles optional columns (User, Topics, Sentiment/Confidence) if present in CSV.
-    
+
     Refactored Schema:
     - Nodes: Stock, TradingDay, Tweet, HashTag
     - Optional Nodes: User, Topic, NewsEvent (if data available)
     - Relationships: PRICE_ON, DISCUSSES, ON_DATE, TAGGED_WITH, POSTED_BY, MENTIONS, REFERENCES
     """
-    
+
     # 1. Pipeline Setup
     neo4j_service.create_constraints()
-    
+
     if not os.path.exists(STOCKS_CSV) or not os.path.exists(SOCIAL_CSV):
         return {"status": "error", "message": "One or more data files not found"}
 
     default_start = pd.to_datetime("2015-01-01")
     default_end = pd.to_datetime("2024-01-01")
     # Validate date strings - check if they're not None, not empty, and not the literal "string"
-    start_date = pd.to_datetime(request.start_date) if (request.start_date and request.start_date.strip() and request.start_date != "string") else default_start
-    end_date = pd.to_datetime(request.end_date) if (request.end_date and request.end_date.strip() and request.end_date != "string") else default_end
-   
+    start_date = (
+        pd.to_datetime(request.start_date)
+        if (request.start_date and request.start_date.strip() and request.start_date != "string")
+        else default_start
+    )
+    end_date = (
+        pd.to_datetime(request.end_date)
+        if (request.end_date and request.end_date.strip() and request.end_date != "string")
+        else default_end
+    )
+
     # 2. Ingest Stock Data
     stock_records = 0
     stock_cypher = """
@@ -64,44 +72,46 @@ async def dataset_to_graph(request: PipelineRequest):
         r.daily_change = row.daily_change,
         r.volatility = row.volatility
     """
-    
+
     # Read Stock CSV
     for chunk in pd.read_csv(STOCKS_CSV, chunksize=request.chunk_size):
         chunk["Date"] = pd.to_datetime(chunk["Date"], errors="coerce")
         mask = (chunk["Date"] >= start_date) & (chunk["Date"] <= end_date) & (chunk["Stock Name"] == request.stock)
         filtered = chunk.loc[mask]
-        
+
         rows = []
         for _, row in filtered.iterrows():
             if pd.isna(row["Date"]):
                 continue
-            
+
             open_price = float(row["Open"])
             close_price = float(row["Close"])
             high_price = float(row["High"])
             low_price = float(row["Low"])
-            
+
             # Calculate metrics
             daily_change = (close_price - open_price) / open_price if open_price != 0 else 0.0
             volatility = (high_price - low_price) / open_price if open_price != 0 else 0.0
 
-            rows.append({
-                "ticker": str(row["Stock Name"]),
-                "date": row["Date"].strftime("%Y-%m-%d"),
-                "open": open_price,
-                "high": high_price,
-                "low": low_price,
-                "close": close_price,
-                "volume": int(row["Volume"]),
-                "daily_change": daily_change,
-                "volatility": volatility
-            })
-            
+            rows.append(
+                {
+                    "ticker": str(row["Stock Name"]),
+                    "date": row["Date"].strftime("%Y-%m-%d"),
+                    "open": open_price,
+                    "high": high_price,
+                    "low": low_price,
+                    "close": close_price,
+                    "volume": int(row["Volume"]),
+                    "daily_change": daily_change,
+                    "volatility": volatility,
+                }
+            )
+
         if rows:
             neo4j_service.run_query(stock_cypher, {"rows": rows})
             stock_records += len(rows)
 
-    # 3. Ingest Tweet Data 
+    # 3. Ingest Tweet Data
     tweet_records = 0
     tweet_cypher = """
     UNWIND $rows AS row
@@ -135,35 +145,35 @@ async def dataset_to_graph(request: PipelineRequest):
         MERGE (n:NewsEvent {event_id: ev})
         MERGE (t)-[:REFERENCES]->(n))
     """
-    
+
     # Read Social CSV
     for chunk in pd.read_csv(SOCIAL_CSV, chunksize=request.chunk_size, on_bad_lines="skip"):
         chunk["Date"] = pd.to_datetime(chunk["Date"], errors="coerce")
         chunk["Date"] = chunk["Date"].dt.tz_localize(None)
-        
+
         mask = (chunk["Date"] >= start_date) & (chunk["Date"] <= end_date) & (chunk["Stock Name"] == request.stock)
         filtered = chunk.loc[mask]
-        
+
         rows = []
         for _, row in filtered.iterrows():
             if pd.isna(row["Date"]):
                 continue
-            
+
             text = str(row["Tweet"])
             tweet_id = hashlib.sha256((text + str(row["Date"])).encode()).hexdigest()
-            
+
             # 3.1 Handle Sentiment (Float fix)
             sentiment = None
             confidence = None
             if "Sentiment" in row and pd.notna(row["Sentiment"]):
-                sentiment = float(row["Sentiment"]) # Corrected: float instead of int
+                sentiment = float(row["Sentiment"])  # Corrected: float instead of int
                 confidence = float(row.get("Confidence", 0.0)) if "Confidence" in row else None
-            
+
             # 3.2 Handle Optional Columns
             user_id = None
             if "User" in row and pd.notna(row["User"]):
                 user_id = str(row["User"])
-                
+
             topics = []
             if "Topics" in row and isinstance(row["Topics"], str):
                 topics = [t.strip() for t in row["Topics"].split("|") if t.strip()]
@@ -172,20 +182,22 @@ async def dataset_to_graph(request: PipelineRequest):
             if "EventId" in row and pd.notna(row["EventId"]):
                 event_id = str(row["EventId"])
 
-            rows.append({
-                "ticker": str(row["Stock Name"]),
-                "tweet_id": tweet_id,
-                "text": text,
-                "date": row["Date"].isoformat(),      
-                "date_only": row["Date"].strftime("%Y-%m-%d"),
-                "hashtags": _extract_hashtags(text),
-                "sentiment": sentiment,
-                "confidence": confidence,
-                "user_id": user_id,
-                "topics": topics,
-                "event_id": event_id
-            })
-            
+            rows.append(
+                {
+                    "ticker": str(row["Stock Name"]),
+                    "tweet_id": tweet_id,
+                    "text": text,
+                    "date": row["Date"].isoformat(),
+                    "date_only": row["Date"].strftime("%Y-%m-%d"),
+                    "hashtags": _extract_hashtags(text),
+                    "sentiment": sentiment,
+                    "confidence": confidence,
+                    "user_id": user_id,
+                    "topics": topics,
+                    "event_id": event_id,
+                }
+            )
+
         if rows:
             neo4j_service.run_query(tweet_cypher, {"rows": rows})
             tweet_records += len(rows)
@@ -195,5 +207,5 @@ async def dataset_to_graph(request: PipelineRequest):
         "stock": request.stock,
         "prices_synced": stock_records,
         "tweets_imported": tweet_records,
-        "notes": "Pipeline executed with enhanced graph capabilities (User/Topic/Event support involved)"
+        "notes": "Pipeline executed with enhanced graph capabilities (User/Topic/Event support involved)",
     }

@@ -1,25 +1,30 @@
-from pydantic import BaseModel
 from typing import Optional
+from pydantic import BaseModel
+
 
 class SentimentRequest(BaseModel):
     text: str
     api_key: Optional[str] = None  # Optional, will use HF_TOKEN from .env if not provided
 
+
 class SentimentResponse(BaseModel):
     sentiment: int
     confidence: float
 
+
 class StockSyncRequest(BaseModel):
     stock: str = "TSLA"
     start_date: Optional[str] = None  # ISO date (YYYY-MM-DD)
-    end_date: Optional[str] = None    # ISO date (YYYY-MM-DD)
+    end_date: Optional[str] = None  # ISO date (YYYY-MM-DD)
     chunk_size: int = 1000
+
 
 class SocialImportRequest(BaseModel):
     stock: str = "TSLA"
     start_date: Optional[str] = None  # ISO date (YYYY-MM-DD)
-    end_date: Optional[str] = None    # ISO date (YYYY-MM-DD)
+    end_date: Optional[str] = None  # ISO date (YYYY-MM-DD)
     chunk_size: int = 1000
+
 
 class SyncSentimentsRequest(BaseModel):
     stock: Optional[str] = None  # Filter by stock ticker
@@ -29,6 +34,7 @@ class SyncSentimentsRequest(BaseModel):
     overwrite: bool = False  # If True, re-analyze tweets that already have sentiment
     batch_size: int = 50  # Number of tweets to process per batch
     api_key: Optional[str] = None  # Optional, will use HF_TOKEN from .env if not provided
+
 
 class SyncSentimentsResponse(BaseModel):
     tweets_processed: int

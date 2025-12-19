@@ -131,10 +131,10 @@ async def gds_stock_communities():
     RETURN s.ticker AS ticker, communityId
     ORDER BY communityId, ticker
     """
-    
+
     # Check if graph exists and drop it to ensure fresh projection
     neo4j_service.run_query("CALL gds.graph.drop('stockCoMention', false)")
-    
+
     result = neo4j_service.run_query(cypher)
     return {"algorithm": "gds.louvain", "stocks": [dict(r) for r in result]}
 
@@ -156,5 +156,3 @@ async def gds_stock_similarity(ticker: str, k: int = 10):
     """
     result = neo4j_service.run_query(cypher, {"ticker": ticker, "k": k})
     return {"algorithm": "gds.nodeSimilarity", "ticker": ticker, "similar": [dict(r) for r in result]}
-
-
